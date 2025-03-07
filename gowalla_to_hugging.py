@@ -5,9 +5,11 @@ from sklearn.model_selection import train_test_split
 import zipfile
 import requests
 import os
+import json
 
 import pandas as pd
-from datasets import Dataset, DatasetDict, Features, ClassLabel, Image
+import numpy as np
+from datasets import Dataset, DatasetDict, Features, ClassLabel, Image, Array2D
 from huggingface_hub import login
 from emnist import extract_training_samples, extract_test_samples
 from PIL.Image import fromarray
@@ -15,48 +17,43 @@ import cv2
 
 # Baixar o dataset GTSRB
 url = "http://benchmark.ini.rub.de/Dataset_GTSRB.tar.gz"
-dataset_dir = "gtsrb_dataset"
+dataset_dir = "gowalla_texas_sequences_window=10_overlap=0.7.csv"
 
 
 # Processar as imagens e labels para salvar em um dataframe
 # Aqui assumimos que o dataset já foi extraído corretamente.
 
-def read_gtsrb_dataset(dataset_dir):
+def read_gowalla_dataset(dataset_dir):
     # Caminho para os arquivos
-    data = []
-    labels = []
-    for class_dir in os.listdir(dataset_dir):
-        class_path = os.path.join(dataset_dir, class_dir)
-        if os.path.isdir(class_path):
-            for img_file in os.listdir(class_path):
-                img_path = os.path.join(class_path, img_file)
-                image = cv2.imread(img_path)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                data.append(image)  # Imagem
-                labels.append(class_dir)  # Classe da imagem
+    data_array  = []
+    df = pd.read_csv(dataset_dir)
+    data = df['x'].tolist()
+    for i in data:
+        data_array.append(json.loads(i))
+    labels = df['y'].tolist()
 
     # Criar dataframe com as informações
-    return data, labels
+    return data_array, labels
 
 print("Reading GTSRB dataset...")
-path = "GTSRB/Train/"
+path = dataset_dir
 
 print("Path to dataset files:", path)
-data, labels = read_gtsrb_dataset(path)
+data, labels = read_gowalla_dataset(dataset_dir)
 print("Ready")
 
 # Dividir em treino e teste
 X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
 
 # Criar um dicionário para armazenar os dados
-train_data = {'image': [fromarray(i) for i in X_train], 'label': y_train}
-test_data = {'image': [fromarray(i) for i in X_test], 'label': y_test}
+train_data = {'sequence': [i for i in X_train], 'label': y_train}
+test_data = {'sequence': [i for i in X_test], 'label': y_test}
 
 unique_labels = pd.unique(labels).tolist()
 
 # Definir as features do dataset (coluna de imagens e rótulos)
 features = Features({
-    'image': Image(),
+    'sequence': Array2D((10, 4), 'float32'),
     'label': ClassLabel(names=unique_labels)  # Ajuste para suas classes reais
 })
 
@@ -78,5 +75,5 @@ hugging_token = os.getenv("HUGGING")
 login(token=hugging_token)
 
 # Definir o repositório onde vamos salvar
-dataset_name = "GTSRB"
+dataset_name = "Gowalla-State-of-Texas"
 dataset.push_to_hub(f"claudiogsc/{dataset_name}")
