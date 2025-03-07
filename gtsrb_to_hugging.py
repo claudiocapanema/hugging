@@ -1,15 +1,8 @@
-import os
-import pandas as pd
-from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
-import zipfile
-import requests
 import os
 
 import pandas as pd
 from datasets import Dataset, DatasetDict, Features, ClassLabel, Image
-from huggingface_hub import login
-from emnist import extract_training_samples, extract_test_samples
 from PIL.Image import fromarray
 import cv2
 

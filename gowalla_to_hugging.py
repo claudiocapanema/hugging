@@ -1,27 +1,11 @@
-import os
-import pandas as pd
-from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
-import zipfile
-import requests
 import os
 import json
 
 import pandas as pd
-import numpy as np
 from datasets import Dataset, DatasetDict, Features, ClassLabel, Image, Array2D
-from huggingface_hub import login
-from emnist import extract_training_samples, extract_test_samples
-from PIL.Image import fromarray
-import cv2
 
-# Baixar o dataset GTSRB
-url = "http://benchmark.ini.rub.de/Dataset_GTSRB.tar.gz"
 dataset_dir = "gowalla_texas_sequences_window=10_overlap=0.7.csv"
-
-
-# Processar as imagens e labels para salvar em um dataframe
-# Aqui assumimos que o dataset já foi extraído corretamente.
 
 def read_gowalla_dataset(dataset_dir):
     # Caminho para os arquivos
@@ -51,7 +35,7 @@ test_data = {'sequence': [i for i in X_test], 'label': y_test}
 
 unique_labels = pd.unique(labels).tolist()
 
-# Definir as features do dataset (coluna de imagens e rótulos)
+# Definir as features do dataset (coluna de sequences e rótulos)
 features = Features({
     'sequence': Array2D((10, 4), 'float32'),
     'label': ClassLabel(names=unique_labels)  # Ajuste para suas classes reais
