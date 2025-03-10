@@ -16,6 +16,8 @@ def read_gtsrb_dataset(dataset_dir):
     # Caminho para os arquivos
     data = []
     labels = []
+    width = 64
+    height = 64
     for class_dir in os.listdir(dataset_dir):
         class_path = os.path.join(dataset_dir, class_dir)
         if os.path.isdir(class_path):
@@ -23,6 +25,7 @@ def read_gtsrb_dataset(dataset_dir):
                 img_path = os.path.join(class_path, img_file)
                 image = cv2.imread(img_path)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                image = cv2.resize(image, (width, height))
                 data.append(image)  # Imagem
                 labels.append(class_dir)  # Classe da imagem
 
@@ -69,5 +72,5 @@ hugging_token = os.getenv("HUGGING")
 login(token=hugging_token)
 
 # Definir o repositório onde vamos salvar
-dataset_name = "claudiogsc/ImageNet-15_household_objects"
+dataset_name = "ImageNet-15_household_objects"
 dataset.push_to_hub(f"claudiogsc/{dataset_name}")
