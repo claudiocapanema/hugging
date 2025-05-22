@@ -36,7 +36,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     distance = R * c  # in kilometers
-    return distance
+    return round(distance, 2)
 
 
 
@@ -54,7 +54,7 @@ def calculate_distance_duration(data):
         distance = haversine(lat_a, lon_a, lat_b, lon_b)
         dt_a = data.iloc[i-1]["datetime"]
         dt_b = data.iloc[i]["datetime"]
-        duration = (dt_b - dt_a).total_seconds() / 3600
+        duration = round((dt_b - dt_a).total_seconds() / 3600, 2)
         distances.append(distance)
         durations.append(duration)
 
@@ -72,7 +72,7 @@ spot_categories1 = gpd.read_file("gowalla_checkins/gowalla_spots_subset1.csv")[[
 spot_categories1 = gpd.GeoDataFrame(spot_categories1, geometry=gpd.points_from_xy(spot_categories1['lng'], spot_categories1['lat']))
 spot_categories1["lat"] = spot_categories1["lat"].astype(float)
 spot_categories1["lng"] = spot_categories1["lng"].astype(float)
-gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv").head(1000)
+gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv")
 # spot_categories2 = gpd.read_file("gowalla_checkins/gowalla_spots_subset2.csv", encoding='unicode_escape')
 # gowalla_categories_structure = pd.read_json("gowalla_checkins/gowalla_category_structure.json")
 category_sub_category_sub_sub_category = []
@@ -112,4 +112,16 @@ gowalla_checkins = gowalla_checkins.groupby("userid").apply(lambda e: calculate_
 print(gowalla_checkins)
 print(category_sub_category_sub_sub_category)
 gowalla_checkins = gowalla_checkins.join(category_sub_category_sub_sub_category.set_index("sub_sub_category"), on="sub_sub_category", how="inner")
+gowalla_checkins = gowalla_checkins.reset_index()[["userid", "datetime", "hour", "distance", "duration", "category", "sub_category", "sub_sub_category"]]
 print(gowalla_checkins)
+unique_categories = gowalla_checkins["category"].unique().tolist()
+unique_sub_categories = gowalla_checkins["sub_category"].unique().tolist()
+unique_sub_sub_category = gowalla_checkins["sub_sub_category"].unique().tolist()
+unique_categories_dict = {unique_categories[i]: i for i in range(len(unique_categories))}
+unique_sub_categories_dict = {unique_sub_categories[i]: i for i in range(len(unique_sub_categories))}
+unique_sub_sub_categories_dict = {unique_sub_sub_category[i]: i for i in range(len(unique_sub_sub_category))}
+gowalla_checkins["category_id"] = np.array([unique_categories_dict[category] for category in gowalla_checkins["category"].tolist()])
+gowalla_checkins["sub_category_id"] = np.array([unique_sub_categories_dict[i] for i in gowalla_checkins["sub_category"].tolist()])
+gowalla_checkins["sub_sub_category_id"] = np.array([unique_sub_sub_categories_dict[i] for i in gowalla_checkins["sub_sub_category"].tolist()])
+gowalla_checkins.to_csv("gowalla_checkins_texas.csv", index=False)
+print(f"quantidade de categories: {len(unique_categories)} \nQuantidade de sub categories: {len(unique_sub_categories)} \nQuantidade de sub sub categories: {len(unique_sub_sub_category)}")
