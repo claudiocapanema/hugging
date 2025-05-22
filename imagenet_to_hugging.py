@@ -6,7 +6,7 @@ from datasets import Dataset, DatasetDict, Features, ClassLabel, Image
 from PIL.Image import fromarray
 import cv2
 
-dataset_dir = "ImageNet15"
+dataset_dir = "ImageNet10"
 
 
 # Processar as imagens e labels para salvar em um dataframe
@@ -18,7 +18,19 @@ def read_gtsrb_dataset(dataset_dir):
     labels = []
     width = 64
     height = 64
-    for class_dir in os.listdir(dataset_dir):
+
+    # indexes = []
+    #
+    #     for class_dir in os.listdir(dataset_dir):
+    #         class_path = os.path.join(dataset_dir, class_dir)
+    #         if os.path.isdir(class_path):
+    #             size = len(os.listdir(class_path))
+    #             indexes.append((size, class_dir))
+    #
+    #     indexes = sorted(indexes, key=lambda x: x[0], reverse=True)
+    #     indexes = [i[1] for i in indexes]
+
+    for class_dir in os.listdir(dataset_dir)[:10]:
         class_path = os.path.join(dataset_dir, class_dir)
         if os.path.isdir(class_path):
             for img_file in os.listdir(class_path):
@@ -32,7 +44,7 @@ def read_gtsrb_dataset(dataset_dir):
     # Criar dataframe com as informações
     return data, labels
 
-print("Reading ImageNet15 dataset...")
+print("Reading ImageNet10 dataset...")
 path = "ImageNet15/train/"
 
 print("Path to dataset files:", path)
@@ -40,7 +52,7 @@ data, labels = read_gtsrb_dataset(path)
 print("Ready")
 
 # Dividir em treino e teste
-X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=None)
 
 # Criar um dicionário para armazenar os dados
 train_data = {'image': [fromarray(i) for i in X_train], 'label': y_train}
@@ -72,5 +84,5 @@ hugging_token = os.getenv("HUGGING")
 login(token=hugging_token)
 
 # Definir o repositório onde vamos salvar
-dataset_name = "ImageNet-15_household_objects"
+dataset_name = "ImageNet-10_household_objects"
 dataset.push_to_hub(f"claudiogsc/{dataset_name}")

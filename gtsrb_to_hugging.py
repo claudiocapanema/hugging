@@ -39,7 +39,7 @@ data, labels = read_gtsrb_dataset(path)
 print("Ready")
 
 # Dividir em treino e teste
-X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=None)
 
 # Criar um dicionário para armazenar os dados
 train_data = {'image': [fromarray(i) for i in X_train], 'label': y_train}
