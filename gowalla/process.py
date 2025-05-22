@@ -20,35 +20,45 @@ def get_category(categories):
 
 import math
 
-
 def haversine(lat1, lon1, lat2, lon2):
-    # Earth radius in kilometers (use 3958.8 for miles)
-    R = 6371.0
+    R = 6371  # Radius of Earth in kilometers
 
-    # Convert coordinates from degrees to radians
+    # Convert degrees to radians
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
     delta_phi = math.radians(lat2 - lat1)
     delta_lambda = math.radians(lon2 - lon1)
 
     # Haversine formula
-    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    a = math.sin(delta_phi / 2)**2 + \
+        math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
+
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    distance = R * c  # *
-
+    distance = R * c  # in kilometers
     return distance
+
 
 
 def calculate_distance_duration(data):
 
+    data = data.sort_values("datetime")
+    distances = []
+    durations = []
     for i in range(1, len(data)):
 
-        lat_a = data[i-1]["lat"]
-        lon_a = data[i-1]["lon"]
-        lat_b = data[i]["lat"]
-        lon_b = data[i]["lon"]
-        distance = haversine(lat_a, lon_b, lat_a, lon_b)
+        lat_a = data.iloc[i-1]["lat"]
+        lon_a = data.iloc[i-1]["lng"]
+        lat_b = data.iloc[i]["lat"]
+        lon_b = data.iloc[i]["lng"]
+        distance = haversine(lat_a, lon_a, lat_b, lon_b)
+        dt_a = data.iloc[i-1]["datetime"]
+        dt_b = data.iloc[i]["datetime"]
+        duration = (dt_b - dt_a).total_seconds() / 3600
+        distances.append(distance)
+        durations.append(duration)
+
+    return pd.DataFrame({"hour": data.iloc[1::]["hour"], "datetime": data.iloc[1::]["datetime"], "distance": distances, "duration": durations, "sub_sub_category": data.iloc[1::]["sub_sub_category"]})
 
 
 
@@ -60,7 +70,9 @@ us_states = us_states[["State", "geometry"]]
 
 spot_categories1 = gpd.read_file("gowalla_checkins/gowalla_spots_subset1.csv")[["id", "lng", "lat", "spot_categories"]]
 spot_categories1 = gpd.GeoDataFrame(spot_categories1, geometry=gpd.points_from_xy(spot_categories1['lng'], spot_categories1['lat']))
-gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv")
+spot_categories1["lat"] = spot_categories1["lat"].astype(float)
+spot_categories1["lng"] = spot_categories1["lng"].astype(float)
+gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv").head(1000)
 # spot_categories2 = gpd.read_file("gowalla_checkins/gowalla_spots_subset2.csv", encoding='unicode_escape')
 # gowalla_categories_structure = pd.read_json("gowalla_checkins/gowalla_category_structure.json")
 category_sub_category_sub_sub_category = []
@@ -77,7 +89,7 @@ for category in gowalla_categories_structure:
             url = sub_sub_category["url"]
             category_sub_category_sub_sub_category.append([category_name, sub_category_name, sub_sub_category_name, url])
 
-category_sub_category_sub_sub_category = pd.DataFrame(category_sub_category_sub_sub_category, columns=["Category", "Sub_category", "Sub_sub_category", "url"])
+category_sub_category_sub_sub_category = pd.DataFrame(category_sub_category_sub_sub_category, columns=["category", "sub_category", "sub_sub_category", "url"])
 print(category_sub_category_sub_sub_category)
 
 print(us_states)
@@ -94,6 +106,10 @@ print(spot_categories1.columns)
 gowalla_checkins = gowalla_checkins.join(spot_categories1.set_index("placeid"), on="placeid", how="inner")
 gowalla_checkins["datetime"] = pd.to_datetime(gowalla_checkins["datetime"], infer_datetime_format=True)
 gowalla_checkins["hour"] = get_hour(gowalla_checkins["datetime"])
-gowalla_checkins["category"] = get_category(gowalla_checkins["spot_categories"])
-gowalla_checkins = gowalla_checkins[["user_id", "datetime", "hour", "category", "lng", "lat", "spot_categories"]]
+gowalla_checkins["sub_sub_category"] = get_category(gowalla_checkins["spot_categories"])
+gowalla_checkins = gowalla_checkins[["userid", "datetime", "hour", "sub_sub_category", "lng", "lat", "spot_categories"]]
+gowalla_checkins = gowalla_checkins.groupby("userid").apply(lambda e: calculate_distance_duration(e))
+print(gowalla_checkins)
+print(category_sub_category_sub_sub_category)
+gowalla_checkins = gowalla_checkins.join(category_sub_category_sub_sub_category.set_index("sub_sub_category"), on="sub_sub_category", how="inner")
 print(gowalla_checkins)
