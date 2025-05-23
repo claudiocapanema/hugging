@@ -72,7 +72,7 @@ spot_categories1 = gpd.read_file("gowalla_checkins/gowalla_spots_subset1.csv")[[
 spot_categories1 = gpd.GeoDataFrame(spot_categories1, geometry=gpd.points_from_xy(spot_categories1['lng'], spot_categories1['lat']))
 spot_categories1["lat"] = spot_categories1["lat"].astype(float)
 spot_categories1["lng"] = spot_categories1["lng"].astype(float)
-gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv")
+
 # spot_categories2 = gpd.read_file("gowalla_checkins/gowalla_spots_subset2.csv", encoding='unicode_escape')
 # gowalla_categories_structure = pd.read_json("gowalla_checkins/gowalla_category_structure.json")
 category_sub_category_sub_sub_category = []
@@ -84,13 +84,17 @@ for category in gowalla_categories_structure:
 
     for sub_category in category["spot_categories"]:
         sub_category_name = sub_category["name"]
-        for sub_sub_category in sub_category["spot_categories"]:
-            sub_sub_category_name = sub_sub_category["name"]
-            url = sub_sub_category["url"]
-            category_sub_category_sub_sub_category.append([category_name, sub_category_name, sub_sub_category_name, url])
+        url = sub_category["url"]
+        if len([sub_sub_category for sub_sub_category in sub_category["spot_categories"]]) > 0:
+            for sub_sub_category in sub_category["spot_categories"]:
+                sub_sub_category_name = sub_sub_category["name"]
+                url = sub_sub_category["url"]
+                category_sub_category_sub_sub_category.append([category_name, sub_category_name, sub_sub_category_name, url])
+        else:
+            category_sub_category_sub_sub_category.append(
+                [category_name, sub_category_name, sub_category_name, url])
 
 category_sub_category_sub_sub_category = pd.DataFrame(category_sub_category_sub_sub_category, columns=["category", "sub_category", "sub_sub_category", "url"])
-print(category_sub_category_sub_sub_category)
 
 print(us_states)
 print(us_states.columns)
@@ -103,9 +107,10 @@ spot_categories1["placeid"] = spot_categories1["id"]
 spot_categories1 = spot_categories1[["placeid", "lng", "lat", "spot_categories"]]
 print(spot_categories1)
 print(spot_categories1.columns)
+gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv")
 gowalla_checkins = gowalla_checkins.join(spot_categories1.set_index("placeid"), on="placeid", how="inner")
 gowalla_checkins["datetime"] = pd.to_datetime(gowalla_checkins["datetime"], infer_datetime_format=True)
-gowalla_checkins["hour"] = get_hour(gowalla_checkins["datetime"])
+gowalla_checkins["hour"] = get_hour(gowalla_checkins["datetime"]).astype(int)
 gowalla_checkins["sub_sub_category"] = get_category(gowalla_checkins["spot_categories"])
 gowalla_checkins = gowalla_checkins[["userid", "datetime", "hour", "sub_sub_category", "lng", "lat", "spot_categories"]]
 gowalla_checkins = gowalla_checkins.groupby("userid").apply(lambda e: calculate_distance_duration(e))
@@ -120,8 +125,8 @@ unique_sub_sub_category = gowalla_checkins["sub_sub_category"].unique().tolist()
 unique_categories_dict = {unique_categories[i]: i for i in range(len(unique_categories))}
 unique_sub_categories_dict = {unique_sub_categories[i]: i for i in range(len(unique_sub_categories))}
 unique_sub_sub_categories_dict = {unique_sub_sub_category[i]: i for i in range(len(unique_sub_sub_category))}
-gowalla_checkins["category_id"] = np.array([unique_categories_dict[category] for category in gowalla_checkins["category"].tolist()])
-gowalla_checkins["sub_category_id"] = np.array([unique_sub_categories_dict[i] for i in gowalla_checkins["sub_category"].tolist()])
-gowalla_checkins["sub_sub_category_id"] = np.array([unique_sub_sub_categories_dict[i] for i in gowalla_checkins["sub_sub_category"].tolist()])
+gowalla_checkins["category_id"] = np.array([unique_categories_dict[category] for category in gowalla_checkins["category"].tolist()]).astype(int)
+gowalla_checkins["sub_category_id"] = np.array([unique_sub_categories_dict[i] for i in gowalla_checkins["sub_category"].tolist()]).astype(int)
+gowalla_checkins["sub_sub_category_id"] = np.array([unique_sub_sub_categories_dict[i] for i in gowalla_checkins["sub_sub_category"].tolist()]).astype(int)
 gowalla_checkins.to_csv("gowalla_checkins_texas.csv", index=False)
 print(f"quantidade de categories: {len(unique_categories)} \nQuantidade de sub categories: {len(unique_sub_categories)} \nQuantidade de sub sub categories: {len(unique_sub_sub_category)}")
