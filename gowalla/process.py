@@ -61,7 +61,7 @@ def calculate_distance_duration(data):
     return pd.DataFrame({"hour": data.iloc[1::]["hour"], "datetime": data.iloc[1::]["datetime"], "distance": distances, "duration": durations, "sub_sub_category": data.iloc[1::]["sub_sub_category"]})
 
 
-
+sample = 300000
 
 us_states = gpd.read_file("us-state-boundaries/us-state-boundaries.shp")
 us_states = us_states[us_states["name"] == "Texas"][["name", "geometry"]]
@@ -108,7 +108,7 @@ spot_categories1 = spot_categories1[["placeid", "lng", "lat", "spot_categories"]
 print(spot_categories1)
 print(spot_categories1.columns)
 gowalla_checkins = gpd.read_file("gowalla_checkins/gowalla_checkins.csv")
-gowalla_checkins = gowalla_checkins.join(spot_categories1.set_index("placeid"), on="placeid", how="inner")
+gowalla_checkins = gowalla_checkins.join(spot_categories1.set_index("placeid"), on="placeid", how="inner").sample(sample, random_state=42)
 gowalla_checkins["datetime"] = pd.to_datetime(gowalla_checkins["datetime"], infer_datetime_format=True)
 gowalla_checkins["hour"] = get_hour(gowalla_checkins["datetime"]).astype(int)
 gowalla_checkins["sub_sub_category"] = get_category(gowalla_checkins["spot_categories"])
@@ -128,5 +128,5 @@ unique_sub_sub_categories_dict = {unique_sub_sub_category[i]: i for i in range(l
 gowalla_checkins["category_id"] = np.array([unique_categories_dict[category] for category in gowalla_checkins["category"].tolist()]).astype(int)
 gowalla_checkins["sub_category_id"] = np.array([unique_sub_categories_dict[i] for i in gowalla_checkins["sub_category"].tolist()]).astype(int)
 gowalla_checkins["sub_sub_category_id"] = np.array([unique_sub_sub_categories_dict[i] for i in gowalla_checkins["sub_sub_category"].tolist()]).astype(int)
-gowalla_checkins.to_csv("gowalla_checkins_texas.csv", index=False)
+gowalla_checkins.to_csv(f"gowalla_checkins_texas-sample-{sample}.csv", index=False)
 print(f"quantidade de categories: {len(unique_categories)} \nQuantidade de sub categories: {len(unique_sub_categories)} \nQuantidade de sub sub categories: {len(unique_sub_sub_category)}")
