@@ -44,13 +44,16 @@ unique_labels = pd.unique(labels).tolist()
 unique_sub_labels = pd.unique(sub_labels).tolist()
 unique_sub_sub_labels = pd.unique(sub_sub_labels).tolist()
 
+print(f"quantidade labels {len(unique_labels)} quantidade sub labels {len(unique_sub_labels)} quantidade sub labels {len(unique_sub_sub_labels)}")
+exit()
+
 # unique_labels = [i for i in range(max(pd.unique(labels).tolist()))]
 # unique_sub_labels = [i for i in range(max(pd.unique(sub_labels).tolist()))]
 # unique_sub_sub_labels = [i for i in range(max(pd.unique(sub_sub_labels).tolist()))]
 
 # Definir as features do dataset (coluna de sequences e rótulos)
 features = Features({
-    'sequence': Array2D((10, 6), 'int32'),
+    'sequence': Array2D((window, 6), 'int32'),
     'label': ClassLabel(names=unique_labels),  # Ajuste para suas classes reais
     'sub_label': ClassLabel(names=unique_sub_labels),  # Ajuste para suas classes reais
     'sub_sub_label': ClassLabel(names=unique_sub_sub_labels),  # Ajuste para suas classes reais
