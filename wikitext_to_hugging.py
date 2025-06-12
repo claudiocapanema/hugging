@@ -6,8 +6,8 @@ import ast
 import pandas as pd
 from datasets import Dataset, DatasetDict, Features, ClassLabel, Image, Array2D, Sequence, Value
 
-window = 30
-words = 100
+window = 10
+words = 30
 dataset_dir = f"wikitext/wikitext-Window-{window}-Words-{words}.csv"
 
 def read_gowalla_dataset(dataset_dir):

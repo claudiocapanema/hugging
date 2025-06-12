@@ -21,7 +21,7 @@ def tokenize(text_lines):
     tokens = text.split()
     return tokens
 
-words = 100
+words = 30
 
 dataset = load_dataset('wikitext', 'wikitext-2-raw-v1')
 full_train_tokens = tokenize(dataset['train']['text'])
@@ -53,11 +53,12 @@ def get_x_y(data, seq_len):
         y.append(data[i + seq_len])
     return x, y
 
-seq_len = 30
+seq_len = 10
 batch_size = 256
 
 x, y = get_x_y(train_tokens, seq_len)
 print(len(x), len(y))
 print(x[0], "\n", y[0])
+print(f"unicas cada {np.unique(y, return_counts=True)}")
 pd.DataFrame({"X": x, "Y": y}).to_csv(f"wikitext-Window-{seq_len}-Words-{words}.csv", index=False)
 
