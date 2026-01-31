@@ -7,14 +7,15 @@ from datasets import Dataset, DatasetDict
 from huggingface_hub import login
 
 SEQ_LEN = 5
-MIN_VENUE_FREQ = 700
+TOP_K = 100   # <<< somente os 100 POIs mais visitados
 
 BASE = "/media/gustavo/e5069d0b-8c3d-4850-8e10-319862c4c082/home/claudio/Downloads/dataset_TIST2015/"
 FILENAME = "dataset_TIST2015_Checkins.txt"
 
-HF_REPO = f"claudiogsc/foursquare_sequences_len_{SEQ_LEN}_min_venue_freq_{MIN_VENUE_FREQ}"
+HF_REPO = f"claudiogsc/foursquare_sequences_len_{SEQ_LEN}_top_{TOP_K}_venues"
 
 # login()  # rode apenas uma vez se não estiver logado
+
 df = pd.read_csv(
     f"{BASE}{FILENAME}",
     sep="\t",
@@ -38,8 +39,21 @@ df["delta_t_bin"] = pd.cut(
 ).astype(int)
 
 df["hour"] = df["datetime"].dt.hour.astype(int)
-df = df.groupby("venueid").filter(lambda x: len(x) >= MIN_VENUE_FREQ)
 
+# =====================================================
+# 🔥 Selecionar somente os TOP 100 venues mais visitados
+# =====================================================
+venue_counts = df["venueid"].value_counts()
+top_venues = venue_counts.head(TOP_K).index
+
+df = df[df["venueid"].isin(top_venues)]
+
+print("Total registros após top venues:", len(df))
+print("Total venues:", df["venueid"].nunique())
+
+# =====================================================
+# Split por usuários
+# =====================================================
 users = df["userid"].unique()
 np.random.shuffle(users)
 
@@ -48,6 +62,10 @@ test_users  = set(users[int(0.8 * len(users)):])
 
 train_df = df[df["userid"].isin(train_users)]
 test_df  = df[df["userid"].isin(test_users)]
+
+# =====================================================
+# LabelEncoder apenas nos TOP 100 venues
+# =====================================================
 le_venue = LabelEncoder()
 train_df["venue_id_enc"] = le_venue.fit_transform(train_df["venueid"])
 
@@ -55,7 +73,11 @@ test_df = test_df[test_df["venueid"].isin(le_venue.classes_)]
 test_df["venue_id_enc"] = le_venue.transform(test_df["venueid"])
 
 num_classes = len(le_venue.classes_)
-print("Num classes:", num_classes)
+print("Num classes (venues):", num_classes)
+
+# =====================================================
+# Construção das sequências
+# =====================================================
 def build_sequences(df, seq_len=5):
     sequences = []
     labels = []
@@ -78,11 +100,13 @@ def build_sequences(df, seq_len=5):
             labels.append(int(venues[i+seq_len]))
 
     return sequences, labels
+
 train_X, train_y = build_sequences(train_df, SEQ_LEN)
 test_X, test_y   = build_sequences(test_df, SEQ_LEN)
 
 print("Train samples:", len(train_X))
 print("Test samples:", len(test_X))
+
 train_dataset = Dataset.from_dict({
     "sequence": train_X,
     "label": train_y
@@ -99,4 +123,5 @@ dataset_dict = DatasetDict({
 })
 
 print(dataset_dict)
+
 dataset_dict.push_to_hub(HF_REPO)
