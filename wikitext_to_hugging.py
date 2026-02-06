@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.model_selection import train_test_split
 import os
 import json
@@ -6,9 +7,8 @@ import ast
 import pandas as pd
 from datasets import Dataset, DatasetDict, Features, ClassLabel, Image, Array2D, Sequence, Value
 
-window = 10
-words = 30
-dataset_dir = f"wikitext/wikitext-Window-{window}-Words-{words}.csv"
+window = 1
+dataset_dir = f"wikitext/wikitext-Window-{window}-Words-{39275}.csv"
 
 def read_gowalla_dataset(dataset_dir):
     # Caminho para os arquivos
@@ -22,11 +22,22 @@ def read_gowalla_dataset(dataset_dir):
     # Criar dataframe com as informações
     return data_array, labels
 
+def remap_to_unique(data, labels):
+    data_flatten = list(np.array(data).flatten())
+    label_flatten = list(np.array(labels))
+    lst = data_flatten + label_flatten
+    unique_vals = sorted(set(lst))         # valores únicos em ordem crescente
+    mapping = {val: i for i, val in enumerate(unique_vals)}  # mapeia para 1..N
+    return [[mapping[x]] for x in data_flatten], [mapping[x] for x in label_flatten], len(mapping)
+
+
 print("Reading GTSRB dataset...")
 path = dataset_dir
 
 print("Path to dataset files:", path)
 data, labels = read_gowalla_dataset(dataset_dir)
+
+data, labels, words = remap_to_unique(data, labels)
 print("Ready")
 
 # Dividir em treino e teste
